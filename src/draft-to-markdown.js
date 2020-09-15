@@ -249,6 +249,8 @@ function renderBlock(block, index, rawDraftObject, options) {
       orderedListNumber = {};
       markdownString += (customStyleItems[type] || StyleItems[type]).open(block);
     }
+  } else {
+    orderedListNumber = {};
   }
 
   // Render text within content, along with any inline styles/entities

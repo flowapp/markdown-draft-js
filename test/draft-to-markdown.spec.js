@@ -18,6 +18,13 @@ describe('draftToMarkdown', function () {
 
       var markdown = draftToMarkdown(rawObject);
       expect(markdown).toEqual('Test **Bold Text** Test');
+
+      /* eslint-disable */
+      rawObject = {"blocks":[{"key":"4mmbt","text":"Test\n\nI am some bold text\nI will not be bold","type":"unstyled","depth":0,"inlineStyleRanges":[{"offset":6,"length":20,"style":"BOLD"}],"entityRanges":[],"data":{}}],"entityMap":{}};
+      /* eslint-enable */
+
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('Test\n\n**I am some bold text**\nI will not be bold');
     });
 
     it('renders inline styled text with trailing whitespace correctly when trailing whitespace is the last character', function () {
@@ -45,6 +52,21 @@ describe('draftToMarkdown', function () {
       expect(markdown).toEqual('**_bold/italic_** plain');
     });
 
+    it('handles unstyled blank lines', function () {
+      // draft-js can have blank lines that have block styles.
+      // This would result in double-application of markdown line prefixes.
+
+      /* eslint-disable */
+      const rawObject = {"blocks":[{"key":"8i76c","text":"a","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"3htgs","text":"b","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"c46o4","text":"","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"l5v1","text":"c","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"cbsdo","text":"","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"9i2da","text":"","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"9mr0v","text":"d","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}}],"entityMap":{}}
+      /* eslint-enable */
+
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('a\n\nb\n\nc\n\nd');
+
+      markdown = draftToMarkdown(rawObject, {preserveNewlines: true});
+      expect(markdown).toEqual('a\nb\n\nc\n\n\nd');
+    });
+
     it('handles blank lines with styled block types', function () {
       // draft-js can have blank lines that have block styles.
       // This would result in double-application of markdown line prefixes.
@@ -58,6 +80,21 @@ describe('draftToMarkdown', function () {
 
       markdown = draftToMarkdown(rawObject, {preserveNewlines: true});
       expect(markdown).toEqual('### \n### Header 1\n### \n### Header 2');
+    });
+
+    it('handles blank lines with blockquotes', function () {
+      // draft-js can have blank lines that have block styles.
+      // This would result in double-application of markdown line prefixes.
+
+      /* eslint-disable */
+      const rawObject = { "blocks": [{ "key": "eg79g", "text": "one\n\nblockquote", "type": "blockquote", "depth": 0, "inlineStyleRanges": [], "entityRanges": [], "data": {} },{"depth":0,"type":"unstyled","text":"Hello :)","entityRanges":[],"inlineStyleRanges":[]}]};
+      /* eslint-enable */
+
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('> one\n> \n> blockquote\n\nHello :)');
+
+      markdown = draftToMarkdown(rawObject, {preserveNewlines: true});
+      expect(markdown).toEqual('> one\n> \n> blockquote\nHello :)');
     });
   });
 
@@ -181,6 +218,31 @@ describe('draftToMarkdown', function () {
       expect(markdown).toEqual('This is a test of [a link](https://google.com)\n\nAnd [perhaps](https://facebook.github.io/draft-js/) we should test once more.');
     });
 
+    it('renders links with surrogate pairs (e.g. some emoji) correctly', function () {
+      /* eslint-disable */
+      var rawObject = {
+        "blocks": [{
+          "key": "eubc2",
+          "text": "🙋 link link",
+          "type": "unstyled",
+          "depth": 0,
+          "inlineStyleRanges": [],
+          "entityRanges": [{"offset": 2, "length": 4, "key": 0}, {"offset": 7, "length": 4, "key": 1}],
+          "data": {}
+        }],
+        "entityMap": {
+          "0": {
+            "type": "LINK",
+            "mutability": "MUTABLE",
+            "data": {"url": "https://link.com", "href": "https://link.com"}
+          }, "1": {"type": "LINK", "mutability": "MUTABLE", "data": {"url": "https://link.com"}}
+        }
+      }
+      /* eslint-enable */
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('🙋 [link](https://link.com) [link](https://link.com)');
+    });
+
     it('renders links with a HREF correctly', function () {
       /* eslint-disable */
       var rawObject = {"entityMap":{"0":{"type":"LINK","mutability":"MUTABLE","data":{"href":"https://google.com"}},"1":{"type":"LINK","mutability":"MUTABLE","data":{"href":"https://facebook.github.io/draft-js/"}}},"blocks":[{"key":"58spd","text":"This is a test of a link","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[{"offset":18,"length":6,"key":0}],"data":{}},{"key":"9ln6g","text":"","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[],"data":{}},{"key":"3euar","text":"And perhaps we should test once more.","type":"unstyled","depth":0,"inlineStyleRanges":[],"entityRanges":[{"offset":4,"length":7,"key":1}],"data":{}}]};
@@ -202,7 +264,7 @@ describe('draftToMarkdown', function () {
       var rawObject = {"entityMap":{},"blocks":[{"key":"2unrq","text":"asdasdasd","type":"unstyled","depth":0,"inlineStyleRanges":[{"offset":0,"length":9,"style":"BOLD"}],"entityRanges":[],"data":{}},{"key":"62od7","text":"asdasd","type":"unstyled","depth":0,"inlineStyleRanges":[{"offset":0,"length":6,"style":"BOLD"}],"entityRanges":[],"data":{}},{"key":"c5obb","text":"asdasdasdmmmasdads","type":"unstyled","depth":0,"inlineStyleRanges":[{"offset":0,"length":9,"style":"BOLD"},{"offset":0,"length":12,"style":"ITALIC"}],"entityRanges":[],"data":{}}]};
       /* eslint-enable */
       var markdown = draftToMarkdown(rawObject);
-      expect(markdown).toEqual('**asdasdasd**\n\n**asdasd**\n\n**_asdasdasd_**_mmm_asdads');
+      expect(markdown).toEqual('**asdasdasd**\n\n**asdasd**\n\n_**asdasdasd**mmm_asdads');
 
       /* eslint-disable */
       rawObject = {"entityMap":{"0":{"type":"mention","mutability":"SEGMENTED","data":{"mention":{"name":"Bran Stark","avatar":"https://d1ojh8nvjh9gcx.cloudfront.net/accounts/168181/2e4bff18a328c50404c411c04e608a32a967b1a2/large_2x.png","link":null,"id":168181}}}},"blocks":[{"key":"bkvjj","text":"asdadd adasdasd Bran Stark sadadsadasddasdasdasdsadsadasdsadasdasdasdsa","type":"unstyled","depth":0,"inlineStyleRanges":[{"offset":7,"length":9,"style":"BOLD"},{"offset":27,"length":27,"style":"BOLD"},{"offset":38,"length":7,"style":"ITALIC"},{"offset":63,"length":8,"style":"ITALIC"}],"entityRanges":[{"offset":16,"length":10,"key":0}],"data":{}}]};
@@ -404,6 +466,55 @@ describe('draftToMarkdown', function () {
       var markdown = draftToMarkdown(rawObject);
       expect(markdown).toEqual('Testing 👍 _italic_ words words words **bold** words words words');
     });
+
+    it('handles overlapping inline style ranges correctly', function () {
+      var rawObject = {
+        blocks: [
+          {
+            key: '8ohj1',
+            text: 'foo bar baz',
+            type: 'unstyled',
+            depth: 0,
+            inlineStyleRanges: [
+              { offset: 0, length: 7, style: 'ITALIC' },
+              { offset: 4, length: 7, style: 'BOLD' }
+            ],
+            entityRanges: [],
+            data: {}
+          }
+        ],
+        entityMap: {}
+      };
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('_foo **bar**_ **baz**');
+    });
+
+    it('handles overlapping entities & inline style ranges correctly', function () {
+      var rawObject = {
+        blocks: [
+          {
+            key: '5rq8m',
+            text: 'foo bar baz',
+            type: 'unstyled',
+            depth: 0,
+            inlineStyleRanges: [{ offset: 4, length: 7, style: 'BOLD' }],
+            entityRanges: [{ offset: 0, length: 7, key: 0 }],
+            data: {}
+          }
+        ],
+        entityMap: {
+          '0': {
+            type: 'LINK',
+            mutability: 'MUTABLE',
+            data: {
+              url: 'http://localhost:8000'
+            }
+          }
+        }
+      };
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('[foo **bar**](http://localhost:8000) **baz**');
+    });
   });
 
   describe('escaping markdown characters', function () {
@@ -415,6 +526,31 @@ describe('draftToMarkdown', function () {
 
       var markdown = draftToMarkdown(rawObject);
       expect(markdown).toEqual('Test \\_not italic\\_ Test \\*\\*not bold\\*\\*');
+    });
+
+    it('escapes complex inline markdown characters', function () {
+      /* eslint-disable */
+      var rawObject = { "entityMap": {}, "blocks": [{ "key": "dvfr1", "text": "Test _not **i** t**a**lic_ T_est **not bold** _hi_ ok **notmatching* smile!", "type": "unstyled", "depth": 0, "inlineStyleRanges": [], "entityRanges": [], "data": {} }] };
+      /* eslint-enable */
+
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('Test \\_not \\*\\*i\\*\\* t**a**lic\\_ T_est \\*\\*not bold\\*\\* \\_hi\\_ ok **notmatching* smile!');
+    });
+
+    it('doesn’t escape inline markdown characters in cases where they aren’t valid as markdown', function () {
+      /* eslint-disable */
+      var rawObject = { "entityMap": {}, "blocks": [{ "key": "dvfr1", "text": "Test_not italic_ Test**not bold**", "type": "unstyled", "depth": 0, "inlineStyleRanges": [], "entityRanges": [], "data": {} }] };
+      /* eslint-enable */
+
+      var markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('Test_not italic_ Test**not bold**');
+
+      /* eslint-disable */
+      rawObject = { "entityMap": {}, "blocks": [{ "key": "dvfr1", "text": "Test _not italic Test not bold", "type": "unstyled", "depth": 0, "inlineStyleRanges": [], "entityRanges": [], "data": {} }] };
+      /* eslint-enable */
+
+      markdown = draftToMarkdown(rawObject);
+      expect(markdown).toEqual('Test _not italic Test not bold');
     });
 
     it ('escapes block markdown characters when at start of line', function () {

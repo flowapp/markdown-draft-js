@@ -21,6 +21,33 @@ describe('idempotency', function () {
     var markdownFromDraft = draftToMarkdown(draftJSObject, {preserveNewlines: true});
 
     expect(markdownFromDraft).toEqual(markdownString);
+
+    markdownString = 'a\nb\n\nc\n\n\nd';
+    draftJSObject = markdownToDraft(markdownString, {preserveNewlines: true});
+    markdownFromDraft = draftToMarkdown(draftJSObject, {preserveNewlines: true});
+
+    expect(markdownFromDraft).toEqual(markdownString);
+
+    markdownString = '\n\na';
+    draftJSObject = markdownToDraft(markdownString, {preserveNewlines: true});
+    markdownFromDraft = draftToMarkdown(draftJSObject, {preserveNewlines: true});
+    expect(markdownFromDraft).toEqual(markdownString);
+
+  });
+
+  it('renders new lines text correctly with styled blocks', function () {
+    var markdownString = '# Test\n\n\nHello There\n\nSmile\n\n\n\n\n\n\n\nYep Hi';
+    var draftJSObject = markdownToDraft(markdownString, {preserveNewlines: true});
+    var markdownFromDraft = draftToMarkdown(draftJSObject, {preserveNewlines: true});
+
+    expect(markdownFromDraft).toEqual(markdownString);
+  });
+
+  it('renders blockquotes correctly', function () {
+    var markdownString = '> Hello I am Blockquote\n\nI am not\n\n> I am';
+    var draftJSObject = markdownToDraft(markdownString, {preserveNewlines: true});
+    var markdownFromDraft = draftToMarkdown(draftJSObject, {preserveNewlines: true});
+    expect(markdownFromDraft).toEqual(markdownString);
   });
 
   it('renders italic text correctly', function () {
@@ -65,6 +92,15 @@ describe('idempotency', function () {
 
   it('renders blockquotes correctly', function () {
     var markdownString = '> Hello I am Blockquote';
+    var draftJSObject = markdownToDraft(markdownString);
+    var markdownFromDraft = draftToMarkdown(draftJSObject);
+
+    expect(markdownFromDraft).toEqual(markdownString);
+  });
+
+  // TODO this test should pass but markdown-to-draft doesn’t correctly create empty markdown blocks in this case currently.
+  xit('renders blockquotes with blank lines correctly', function () {
+    var markdownString = '> Hello I am Blockquote\n> more\n> \n> \n> hey';
     var draftJSObject = markdownToDraft(markdownString);
     var markdownFromDraft = draftToMarkdown(draftJSObject);
 

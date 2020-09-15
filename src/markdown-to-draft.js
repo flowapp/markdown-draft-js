@@ -1,4 +1,5 @@
-const Remarkable = require('remarkable');
+import { Remarkable } from 'remarkable';
+
 const TRAILING_NEW_LINE = /\n$/;
 
 // In DraftJS, string lengths are calculated differently than in JS itself (due
@@ -186,10 +187,30 @@ function markdownToDraft(string, options = {}) {
   const remarkableOptions = typeof options.remarkableOptions === 'object' ? options.remarkableOptions : null;
   const md = new Remarkable(remarkablePreset, remarkableOptions);
 
-  // TODO: markdownToDisable - I imagine we may want to allow users to customize this.
-  // and also a way to enable specific special markdown, as that’s another thing remarkable allows.
-  const markdownToDisable = ['table'];
-  md.block.ruler.disable(markdownToDisable);
+  // if tables are not explicitly enabled, disable them by default
+  if (
+    !remarkableOptions ||
+    !remarkableOptions.enable ||
+    !remarkableOptions.enable.block ||
+    remarkableOptions.enable.block !== 'table' ||
+    remarkableOptions.enable.block.includes('table') === false
+  ) {
+    md.block.ruler.disable('table');
+  }
+
+  // disable the specified rules
+  if (remarkableOptions && remarkableOptions.disable) {
+    for (let [key, value] of Object.entries(remarkableOptions.disable)) {
+      md[key].ruler.disable(value);
+    }
+  }
+
+  // enable the specified rules
+  if (remarkableOptions && remarkableOptions.enable) {
+    for (let [key, value] of Object.entries(remarkableOptions.enable)) {
+      md[key].ruler.enable(value);
+    }
+  }
 
   // If users want to define custom remarkable plugins for custom markdown, they can be added here
   if (options.remarkablePlugins) {
@@ -202,7 +223,7 @@ function markdownToDraft(string, options = {}) {
   var entityMap = {}; // entitymap will be returned as part of the final draftjs raw object
   var parsedData = md.parse(string, {}); // remarkable js takes markdown and makes it an array of style objects for us to easily parse
   var currentListType = null; // Because of how remarkable's data is formatted, we need to cache what kind of list we're currently dealing with
-  var previousBlockEndingLine = 1;
+  var previousBlockEndingLine = 0;
 
   // Allow user to define custom BlockTypes and Entities if they so wish
   const BlockTypes = Object.assign({}, DefaultBlockTypes, options.blockTypes || {});
@@ -256,20 +277,18 @@ function markdownToDraft(string, options = {}) {
       if (block && options.preserveNewlines) {
         // Re: previousBlockEndingLine.... omg.
         // So remarkable strips out empty newlines and doesn't make any entities to parse to restore them
-        // the only solution I could find is that there's a 2-value array on each block item called "lines" which is the start end line of the block element.
+        // the only solution I could find is that there's a 2-value array on each block item called "lines" which is the start and end line of the block element.
         // by keeping track of the PREVIOUS block element ending line and the NEXT block element starting line, we can find the difference between the new lines and insert
         // an appropriate number of extra paragraphs to re-create those newlines in draftjs.
         // This is probably my least favourite thing in this file, but not sure what could be better.
-        if (previousBlockEndingLine) {
-          var totalEmptyParagraphsToCreate = item.lines[0] - previousBlockEndingLine;
-          for (var i = 0; i < totalEmptyParagraphsToCreate; i++) {
-            blocks.push(DefaultBlockTypes.paragraph_open());
-          }
+        var totalEmptyParagraphsToCreate = item.lines[0] - previousBlockEndingLine;
+        for (var i = 0; i < totalEmptyParagraphsToCreate; i++) {
+          blocks.push(DefaultBlockTypes.paragraph_open());
         }
       }
 
       if (block) {
-        previousBlockEndingLine = item.lines[1] + 1;
+        previousBlockEndingLine = item.lines[1];
         blocks.push(block);
       }
     }
@@ -289,4 +308,4 @@ function markdownToDraft(string, options = {}) {
   };
 }
 
-module.exports = markdownToDraft;
+export default markdownToDraft;

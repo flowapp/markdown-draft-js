@@ -23,6 +23,31 @@ describe('markdownToDraft', function () {
     expect(conversionResult.blocks[0].type).toEqual('unstyled');
   });
 
+  it('renders unstyled blank lines correctly', function () {
+    var markdown = 'a\nb\n\nc\n\n\nd';
+    var conversionResult = markdownToDraft(markdown);
+    expect(conversionResult.blocks[0].text).toEqual('a\nb');
+    expect(conversionResult.blocks[0].type).toEqual('unstyled');
+    expect(conversionResult.blocks[1].text).toEqual('c');
+    expect(conversionResult.blocks[1].type).toEqual('unstyled');
+    expect(conversionResult.blocks[2].text).toEqual('d');
+    expect(conversionResult.blocks[2].type).toEqual('unstyled');
+
+    conversionResult = markdownToDraft(markdown, {preserveNewlines: true});
+    expect(conversionResult.blocks[0].text).toEqual('a\nb');
+    expect(conversionResult.blocks[0].type).toEqual('unstyled');
+    expect(conversionResult.blocks[1].text).toEqual('');
+    expect(conversionResult.blocks[1].type).toEqual('unstyled');
+    expect(conversionResult.blocks[2].text).toEqual('c');
+    expect(conversionResult.blocks[2].type).toEqual('unstyled');
+    expect(conversionResult.blocks[3].text).toEqual('');
+    expect(conversionResult.blocks[3].type).toEqual('unstyled');
+    expect(conversionResult.blocks[4].text).toEqual('');
+    expect(conversionResult.blocks[4].type).toEqual('unstyled');
+    expect(conversionResult.blocks[5].text).toEqual('d');
+    expect(conversionResult.blocks[5].type).toEqual('unstyled');
+  });
+
   it('renders hardbreaks correctly', function () {
     var markdown = 'First line  \nSecond line';
     var conversionResult = markdownToDraft(markdown);
@@ -475,7 +500,7 @@ describe('markdownToDraft', function () {
     });
   });
 
-  it ('ignores tables', function () {
+  it ('ignores tables by default', function () {
     var markdown = 'this is the first line.\n' +
           '\n' +
           'this is the second line.\n' +
@@ -556,4 +581,83 @@ describe('markdownToDraft', function () {
     expect(conversionResult.blocks[2].text).toEqual('this is the second line.');
     expect(conversionResult.blocks[2].type).toEqual('unstyled');
   });
+
+  it('can disable rules', () => {
+    var markdown = 'This is a test of [a link](https://google.com)';
+    var remarkableOptions = {
+      remarkableOptions: {
+        disable: {
+          inline: 'links'
+        }
+      }
+    }
+    var conversionResult = markdownToDraft(markdown, remarkableOptions);
+
+    expect(conversionResult.blocks[0].text).toEqual(
+      'This is a test of [a link](https://google.com)'
+    );
+  });
+
+  it('can enable rules', () => {
+    var markdown = 'H~2~O is a liquid.  2^10^ is 1024.';
+    var remarkableOptions = {
+      remarkableOptions: {
+        enable: {
+          inline: ['sub', 'sup']
+        }
+      }
+    }
+    var conversionResult = markdownToDraft(markdown, remarkableOptions);
+
+    expect(conversionResult.blocks[0].text).toEqual(
+      'HO is a liquid.  2 is 1024.'
+    );
+  });
+
+  it ('can enable tables with a string', function () {
+    var markdown = 'this is the first line.\n' +
+          '\n' +
+          'this is the second line.\n' +
+          '\n' +
+          '| foo | bar |\n' +
+          '| --- | --- |\n' +
+          '| baz | bim |\n' +
+          '\n' +
+          'This is another line under the table.';
+    var remarkableOptions = {
+      remarkableOptions: {
+        enable: {
+          block: 'table'
+        }
+      }
+    }
+    var conversionResult = markdownToDraft(markdown, remarkableOptions);
+    expect(conversionResult.blocks[0].text).toEqual('this is the first line.');
+    expect(conversionResult.blocks[1].text).toEqual('bim');
+    expect(conversionResult.blocks[2].text).toEqual('This is another line under the table.');
+  });
+
+  it ('can enable tables with an array', function () {
+    var markdown = 'this is the first line.\n' +
+          '\n' +
+          'this is the second line.\n' +
+          '\n' +
+          '| foo | bar |\n' +
+          '| --- | --- |\n' +
+          '| baz | bim |\n' +
+          '\n' +
+          'This is another line under the table.';
+    var remarkableOptions = {
+      remarkableOptions: {
+        enable: {
+          block: ['table']
+        }
+      }
+    }
+    var conversionResult = markdownToDraft(markdown, remarkableOptions);
+    expect(conversionResult.blocks[0].text).toEqual('this is the first line.');
+    expect(conversionResult.blocks[1].text).toEqual('bim');
+    expect(conversionResult.blocks[2].text).toEqual('This is another line under the table.');
+  });
+
 });

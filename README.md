@@ -1,16 +1,24 @@
-⭐️ **A quick maintenance note:** I ([Rosey](https://github.com/Rosey)) work full time and am the mom to both a toddler and a high–energy dog, and this is just a side–project 😇 Therefore, it’s much appreciated if people who encounter bugs and are able to do so, they open a PR with a proposed fix (vs opening an issue and waiting for me to fix it). OR if you happen to be using this library and see an open issue you’re able to fix, I would love it if you opened a PR with that fix! Of course, feel free to continue to open issues if you don’t have the time or knowledge to fix a bug you notice, I just want to set the expectation that response time will not be super speedy 🙃 I’ll do my best to review and merge any PRs that do get opened. Thank you! ❤️ And thank you to everyone who has helped out and contributed to this project, it has been a real delight 🥰
+😷 **COVID update** I am now stuck at home full time with two very young children and get zero breaks all day from the moment I wake up until the moment I go to sleep. Anything that requires deep thought, like reviewing and writing code, as well as taking deep dives into open issues, is basically impossible for me right now! So sorry if things fall behind.
+
+⭐️ **A quick maintenance note:** I ([Rosey](https://github.com/Rosey)) work full time and am the mom to a toddler, a soon-to-be newborn (coming Dec 2019), and a high–energy dog, and this is just a side–project 😇 Therefore, it’s much appreciated if people who encounter bugs and are able to do so, they open a PR with a proposed fix (vs opening an issue and waiting for me to fix it). OR if you happen to be using this library and see an open issue you’re able to fix, I would love it if you opened a PR with that fix! Of course, feel free to continue to open issues if you don’t have the time or knowledge to fix a bug you notice, I just want to set the expectation that response time will not be super speedy 🙃 I’ll do my best to review and merge any PRs that do get opened. Thank you! ❤️ And thank you to everyone who has helped out and contributed to this project, it has been a real delight 🥰
 
 # Markdown draft js
 
-A tool for converting [Draft.js](https://facebook.github.io/draft-js/) [raw object](https://facebook.github.io/draft-js/docs/api-reference-data-conversion.html) to [markdown](https://daringfireball.net/projects/markdown/), and vice-versa.
+A tool for converting [Draft.js](https://draftjs.org) [raw object](https://draftjs.org/docs/api-reference-data-conversion) to [markdown](https://daringfireball.net/projects/markdown/), and vice-versa.
 
 **Looking for an example?** [There is a running example here](https://rosey.github.io/markdown-draft-js/)
+
+### Markdown draft js vs other similar projects - what’s the story?
+
+I started this project in 2016 because I was in need of a draft/markdown conversion tool that could handle custom entities, such as mentions, and the existing conversion tools out there didn’t support these slightly complex needs. I was also finding various bugs with the existing conversion tools and none of them seemed to be maintained, so I decided to write my own.
+
+It’s now 2019 and the landscape has potentially changed! I don’t spend a ton of time keeping tabs on other draftjs markdown conversion tools out there, but I believe there are a few that are actively maintained and significantly more popular than this one, such as [draft-js-export-markdown](https://github.com/sstur/draft-js-utils/tree/master/packages/draft-js-export-markdown). Before choosing this project, I encourage you to do your research! This may still be the best tool for what you need, but it’s always worth being critical and looking at all your options 😃 Stability wise, I use markdown-draft-js in a production environment with over 10k monthly active users and it has served very well so far.
 
 ## Basic Usage
 
 Please note: We recommend using a polyfill (like babel-polyfill) since we're using a bunch of modern array methods.
 
-`draftToMarkdown` expects a [RAW Draft.js JS object](https://facebook.github.io/draft-js/docs/api-reference-data-conversion.html).
+`draftToMarkdown` expects a [RAW Draft.js JS object](https://draftjs.org/docs/api-reference-data-conversion).
 
 It returns a string of markdown.
 
@@ -23,7 +31,7 @@ var markdownString = draftToMarkdown(rawObject);
 
 `markdownToDraft` expects a string containing markdown.
 
-It returns a [RAW Draft.js JS object](https://facebook.github.io/draft-js/docs/api-reference-data-conversion.html).
+It returns a [RAW Draft.js JS object](https://draftjs.org/docs/api-reference-data-conversion).
 
 ```javascript
 // First, import `draftToMarkdown`
@@ -32,11 +40,48 @@ import { markdownToDraft } from 'markdown-draft-js';
 var rawObject = markdownToDraft(markdownString);
 ```
 
+## Example
+
+```javascript
+[---]
+
+import { draftToMarkdown, markdownToDraft } from 'markdown-draft-js';
+import { EditorState, convertToRaw, convertFromRaw } from 'draft-js';
+
+[---]
+
+constructor(props) {
+  super(props);
+
+  // Convert input from markdown to draftjs state
+  const markdownString = this.props.markdownString;
+  const rawData = markdownToDraft(markdownString);
+  const contentState = convertFromRaw(rawData);
+  const newEditorState = EditorState.createWithContent(contentState);
+  this.state = {
+    editorState: newEditorState,
+  };
+
+  this.onChange = (editorState) => {
+    this.setState({ editorState });
+
+    // Convert draftjs state to markdown
+    const content = editorState.getCurrentContent();
+    const rawObject = convertToRaw(content);
+    const markdownString = draftToMarkdown(rawObject);
+
+    // Do something with the markdown
+  };
+}
+
+[---]
+```
+
 ## Custom Values
 
 In case you want to extend markdown’s functionality, you can. `draftToMarkdown` accepts an (optional) second `options` argument.
 
-It takes two values: `styleItems` and `entityItems`. This is because of a distinction in draftjs between styles and entities. You can read more about them on [Draft’s documentation](https://facebook.github.io/draft-js/docs/api-reference-character-metadata.html).
+It takes two values: `styleItems` and `entityItems`. This is because of a distinction in draftjs between styles and entities. You can read more about them on [Draft’s documentation](https://draftjs.org/docs/api-reference-character-metadata).
 
 Say I wanted to convert <span style="color: red">**red text**</span> from my Draft.js editor to a span with a red colour style. Unless I write a custom method for it, the markdown parser will ignore this special style, since it’s not a normal, pre-defined style. (An example of this style item is defined in one of the Draft.js [custom colours](https://github.com/facebook/draft-js/tree/master/examples/color) examples.)
 
@@ -120,6 +165,32 @@ var rawDraftJSObject = markdownToDraft(markdownString, {
   }
 });
 ```
+
+#### Enabling / Disabling rules
+
+It's possible to enable or disable specific rules. Remarkable categorizes them into three groups, every file represents a possible rule:
+
+- [Inline](https://github.com/jonschlinkert/remarkable/tree/master/lib/rules_inline) (e.g. links, bold, italic)
+- [Block](https://github.com/jonschlinkert/remarkable/tree/master/lib/rules_block) (e.g. tables, headings)
+- [Core](https://github.com/jonschlinkert/remarkable/tree/master/lib/rules_core) (e.g. automatic link conversion or abbreviations)
+
+```javascript
+var rawDraftJSObject = markdownToDraft(markdownString, {
+  remarkablePreset: 'commonmark',
+  remarkableOptions: {
+    disable: {
+      inline: ['links', 'emphasis'],
+      block: ['heading']
+    },
+    enable: {
+      block: 'table',
+      core: ['abbr']
+    }
+  }
+});
+```
+
+The `table` rule is disabled by default but could be enabled like in the example above.
 
 ### More options
 
